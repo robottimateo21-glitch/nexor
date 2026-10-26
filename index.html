@@ -8525,7 +8525,7 @@ document.addEventListener("click", e=>{
    ========================================================= */
 const NEWS_LIVE_TTL = 3*36e5;
 const NEWS_SEED = NEWS.slice();
-const NEWS_ST = {mode:"seed", at:0, sources:[], loading:false};
+const NEWS_ST = {mode:"seed", at:0, sources:[], loading:false, err:false};
 const NEWS_FMT = d => `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
 function newsLiveSet(items, lang, at, sources){
   const out = [], seen = new Set();
@@ -8559,6 +8559,7 @@ function newsCountText(){
 function newsStatusHTML(){
   if(NEWS_ST.loading && NEWS_ST.mode!=="live") return `<span class="ns-dot ld"></span>${LX("Buscando noticias nuevas…","Looking for new stories…","Buscando notícias novas…")}`;
   if(NEWS_ST.mode==="live") return `<span class="ns-dot on"></span>${LX("Se actualizan solas","Updated automatically","Atualizam sozinhas")} · ${newsAgo(NEWS_ST.at)} · <span class="ns-src">${esc(NEWS_ST.sources.join(", "))}</span> <button class="linkbtn small" data-act="newsForce">${LX("Actualizar","Refresh","Atualizar")}</button>`;
+  if(NEWS_ST.err && navigator.onLine!==false) return `<span class="ns-dot ld"></span>${LX("No se pudieron traer las noticias nuevas; mostramos las de archivo.","Couldn't fetch new stories; showing archived news.","Não foi possível trazer as notícias novas; mostramos as de arquivo.")} <button class="linkbtn small" data-act="newsForce">${LX("Reintentar","Retry","Tentar de novo")}</button>`;
   return `<span class="ns-dot off"></span>${LX("Sin conexión: mostramos noticias de archivo hasta que vuelva internet.","Offline: showing archived news until the connection is back.","Sem conexão: mostramos notícias de arquivo até a internet voltar.")}`;
 }
 function newsCacheLoad(lang){
@@ -8574,7 +8575,7 @@ async function newsLiveLoad(force){
   if(NEWS_ST.loading) return;
   NEWS_ST.loading = true; newsRefreshUI();
   try{
-    const r = await fetch("/api/news?lang="+lang+(force?"&t="+Date.now():""), {cache: force?"no-store":"default"}); if(!r.ok) throw 0;
+    const r = await fetch("/api/news?lang="+lang+(force?"&t="+Date.now():""), {cache: force?"no-store":"default"}); if(!r.ok) throw 0; NEWS_ST.err=false;
     const j = await r.json(); if(LANG!==lang) return;
     if(j && Array.isArray(j.items) && j.items.length){
       const at = Date.parse(j.at) || Date.now();
@@ -8583,7 +8584,7 @@ async function newsLiveLoad(force){
       newsLiveSet(j.items, lang, at, j.sources);
       if(before !== NEWS.map(n=>n.u).join()) newsPage = 0;
     }
-  }catch(e){}
+  }catch(e){ NEWS_ST.err = true; }
   finally{ NEWS_ST.loading = false; if(LANG===lang) newsRefreshUI(); }
 }
 /* Lista y categorías (cuentan solo lo que se ve) */
