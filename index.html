@@ -8111,7 +8111,6 @@ function whatsNew(force){
   if(!force && (seen===UPD_ID || !P || (doneCount()===0 && !P.xp))){ try{ localStorage.setItem("nexor_news", UPD_ID); }catch(e){} return; }
   try{ localStorage.setItem("nexor_news", UPD_ID); }catch(e){}
   const items=[
-   ["🧪",LX("Laboratorio","Lab","Laboratório"),LX("Calculadoras con datos reales: resistencia de un LED, distancia con ultrasonido, tu peso en Marte, demora de la señal y más.","Calculators with real data: LED resistor, ultrasonic distance, your weight on Mars, signal delay and more.","Calculadoras com dados reais: resistor de LED, distância com ultrassom, seu peso em Marte, atraso do sinal e mais.")],
    ["🔍",LX("¿Mito o realidad?","Myth or fact?","Mito ou verdade?"),LX("Nuevo minijuego: ¿Galileo inventó el telescopio? ¿Las pirámides las hicieron esclavos? Descúbrelo.","New minigame: did Galileo invent the telescope? Were the pyramids built by slaves? Find out.","Novo minijogo: Galileu inventou o telescópio? As pirâmides foram feitas por escravos? Descubra.")],
    ["🔎",LX("Buscador","Search","Busca"),LX("Encuentra cualquier lección, tema o palabra con la tecla / o con la lupa.","Find any lesson, topic or word with the / key or the magnifying glass.","Encontre qualquer lição, tema ou palavra com a tecla / ou com a lupa.")],
    ["✅",LX("Lecciones verificadas","Verified lessons","Lições verificadas"),LX("Revisamos los datos con fuentes como NASA, hojas de datos y museos: Artemis, Perseverance, Voyager, Galileo y mucho más.","We checked the facts against sources like NASA, datasheets and museums: Artemis, Perseverance, Voyager, Galileo and much more.","Revisamos os dados com fontes como NASA, folhas de dados e museus: Artemis, Perseverance, Voyager, Galileu e muito mais.")],
@@ -12245,140 +12244,12 @@ for(let i=ACH.length-1;i>=0;i--) if(["base","flight","pilot","campaign","legend"
 
 /* =========================================================
    Funciones nuevas:
-   1) Laboratorio: calculadoras con valores reales de hojas de datos y de la NASA.
    2) Minijuego "¿Mito o realidad?" con mitos verificados.
    3) Buscador global (lecciones, temas, capítulos y glosario).
    ========================================================= */
 I.flask = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6L4.5 18.5A2 2 0 0 0 6.2 21.5h11.6a2 2 0 0 0 1.7-3L14 9V3"/><path d="M7.5 15h9"/></svg>`;
 const NUMLOC = () => LANG==="en" ? "en-US" : LANG==="pt" ? "pt-BR" : "es-AR";
 const labN = (x, d=1) => (isFinite(x) ? Number(x).toLocaleString(NUMLOC(), {maximumFractionDigits:d, minimumFractionDigits:0}) : "–");
-
-/* ---------- 1) Laboratorio ---------- */
-const LED_COLORS = [
-  {k:"rojo", v:2.0, c:"#ef4444", n:["Rojo","Red","Vermelho"]},
-  {k:"amarillo", v:2.1, c:"#facc15", n:["Amarillo","Yellow","Amarelo"]},
-  {k:"verde", v:3.3, c:"#22c55e", n:["Verde (InGaN)","Green (InGaN)","Verde (InGaN)"]},
-  {k:"azul", v:3.3, c:"#3b82f6", n:["Azul","Blue","Azul"]},
-  {k:"blanco", v:3.2, c:"#f8fafc", n:["Blanco","White","Branco"]}
-];
-const E12 = [10,12,15,18,22,27,33,39,47,56,68,82];
-function e12Up(r){ if(!(r>0)) return null; let m=1; while(m*100<r) m*=10; while(m>1 && m*10>r) m/=10; for(let k=0;k<4;k++){ for(const v of E12){ const x=v*m; if(x>=r-1e-9) return x; } m*=10; } return null; }
-const WORLDS = [
-  {k:"tierra", g:9.81, ic:"🌍", n:["Tierra","Earth","Terra"]},
-  {k:"luna", g:1.62, ic:"🌙", n:["Luna","Moon","Lua"]},
-  {k:"marte", g:3.71, ic:"🔴", n:["Marte","Mars","Marte"]},
-  {k:"jupiter", g:24.79, ic:"🪐", n:["Júpiter","Jupiter","Júpiter"]}
-];
-const DESTS = [
-  {k:"luna", km:384400, n:["La Luna","The Moon","A Lua"]},
-  {k:"marteCerca", km:55e6, n:["Marte (lo más cerca)","Mars (closest)","Marte (mais perto)"]},
-  {k:"marteLejos", km:401e6, n:["Marte (lo más lejos)","Mars (farthest)","Marte (mais longe)"]},
-  {k:"jupiter", km:628e6, n:["Júpiter (lo más cerca)","Jupiter (closest)","Júpiter (mais perto)"]},
-  {k:"voyager", km:25.9e9, n:["Voyager 1 (nov. 2026)","Voyager 1 (Nov 2026)","Voyager 1 (nov. 2026)"]}
-];
-const CELLS = [
-  {k:"alc", v:1.5, n:["Alcalina (1,5 V)","Alkaline (1.5 V)","Alcalina (1,5 V)"]},
-  {k:"nimh", v:1.2, n:["NiMH recargable (1,2 V)","NiMH rechargeable (1.2 V)","NiMH recarregável (1,2 V)"]},
-  {k:"li", v:3.7, n:["Li-ion 18650 (3,7 V)","Li-ion 18650 (3.7 V)","Li-ion 18650 (3,7 V)"]}
-];
-function durTxt(sec){
-  if(!isFinite(sec)) return "–";
-  if(sec<60) return LX(`${labN(sec, sec<10?2:1)} segundos`,`${labN(sec, sec<10?2:1)} seconds`,`${labN(sec, sec<10?2:1)} segundos`);
-  const m=sec/60; if(m<60) return LX(`${labN(m,1)} minutos`,`${labN(m,1)} minutes`,`${labN(m,1)} minutos`);
-  const h=m/60; return LX(`${labN(h,1)} horas`,`${labN(h,1)} hours`,`${labN(h,1)} horas`);
-}
-let LAB = {bits:[0,0,1,0,1,0,1,0]};
-const labVal = (id, def) => { const el=document.getElementById(id); const v=el?parseFloat(String(el.value).replace(",", ".")):NaN; return isNaN(v)?def:v; };
-const labSel = (id, def) => { const el=document.getElementById(id); return el?el.value:def; };
-const LAB_CALC = {
-  led(){
-    const vs=labVal("lbVs",5), col=LED_COLORS.find(c=>c.k===labSel("lbCol","rojo"))||LED_COLORS[0], ma=labVal("lbMa",15);
-    const r=(vs-col.v)/(ma/1000);
-    if(!(vs>col.v)) return `<p class="lab-warn">⚠️ ${LX(`Con ${labN(vs)} V no alcanza: este LED necesita unos ${labN(col.v)} V.`,`${labN(vs)} V isn't enough: this LED needs about ${labN(col.v)} V.`,`Com ${labN(vs)} V não dá: esse LED precisa de uns ${labN(col.v)} V.`)}</p>`;
-    const rc=e12Up(r), ireal=(vs-col.v)/rc*1000, p=(vs-col.v)*(ireal/1000)*1000;
-    return `<div class="lab-big"><span class="lab-led" style="--lc:${col.c}"></span><b class="num">${labN(rc,0)} Ω</b><small>${LX("resistencia comercial a usar","commercial resistor to use","resistor comercial a usar")}</small></div>
-      <ul class="lab-steps"><li>${LX("Tensión que queda para la resistencia","Voltage left for the resistor","Tensão que sobra para o resistor")}: ${labN(vs)} − ${labN(col.v)} = <b>${labN(vs-col.v,2)} V</b></li>
-      <li>R = V ÷ I = ${labN(vs-col.v,2)} ÷ ${labN(ma/1000,3)} = <b>${labN(r,0)} Ω</b> → ${LX("valor comercial de arriba","next standard value up","próximo valor comercial")}: <b>${labN(rc,0)} Ω</b></li>
-      <li>${LX("Corriente real","Actual current","Corrente real")}: <b>${labN(ireal,1)} mA</b> · ${LX("potencia en la resistencia","power in the resistor","potência no resistor")}: <b>${labN(p,0)} mW</b> ${p>250?`⚠️ ${LX("usa una de 1/2 W","use a 1/2 W one","use um de 1/2 W")}`:`(${LX("alcanza con 1/4 W","1/4 W is fine","1/4 W basta")})`}</li></ul>`;
-  },
-  sonar(){
-    const us=labVal("lbUs",1000), T=labVal("lbT",20), v=331.3+0.606*T, cm=us*1e-6*v/2*100, cm340=us*1e-6*340/2*100;
-    const out = cm<2||cm>400;
-    return `<div class="lab-big"><b class="num">${labN(cm,1)} cm</b><small>${LX("distancia al objeto","distance to the object","distância até o objeto")}</small></div>
-      <ul class="lab-steps"><li>${LX("Velocidad del sonido a","Speed of sound at","Velocidade do som a")} ${labN(T,0)} °C: 331,3 + 0,606 × ${labN(T,0)} = <b>${labN(v,1)} m/s</b></li>
-      <li>${LX("Distancia","Distance","Distância")} = ${labN(us,0)} µs × ${labN(v,1)} m/s ÷ 2 = <b>${labN(cm,1)} cm</b></li>
-      <li>${LX("Atajo de la hoja de datos","Datasheet shortcut","Atalho da folha de dados")}: ${labN(us,0)} ÷ 58 = <b>${labN(us/58,1)} cm</b> · ${LX("con 340 m/s fijo","with a fixed 340 m/s","com 340 m/s fixo")}: ${labN(cm340,1)} cm</li></ul>
-      ${out?`<p class="lab-warn">⚠️ ${LX("Fuera del rango del HC-SR04 (2 cm a 4 m).","Outside the HC-SR04 range (2 cm to 4 m).","Fora do alcance do HC-SR04 (2 cm a 4 m).")}</p>`:""}`;
-  },
-  weight(){
-    const kg=labVal("lbKg",50);
-    return `<div class="lab-worlds">${WORLDS.map(w=>{ const n=kg*w.g, eq=n/9.81; return `<div class="lab-w"><span>${w.ic}</span><b>${LX(...w.n)}</b><em class="num">${labN(n,0)} N</em><small>${w.k==="tierra"?LX("tu peso normal","your normal weight","seu peso normal"):LX(`como cargar ${labN(eq,1)} kg en la Tierra`,`like carrying ${labN(eq,1)} kg on Earth`,`como carregar ${labN(eq,1)} kg na Terra`)}</small></div>`; }).join("")}</div>
-      <p class="small muted">${LX(`Tu masa sigue siendo ${labN(kg,1)} kg en todos lados: lo que cambia es la fuerza con que te atrae cada mundo (el peso, en newtons).`,`Your mass is still ${labN(kg,1)} kg everywhere: what changes is how hard each world pulls on you (weight, in newtons).`,`Sua massa continua sendo ${labN(kg,1)} kg em todo lugar: o que muda é a força com que cada mundo te atrai (o peso, em newtons).`)}</p>`;
-  },
-  signal(){
-    const d=DESTS.find(x=>x.k===labSel("lbDest","marteCerca"))||DESTS[1], s=d.km/299792.458;
-    return `<div class="lab-big"><b class="num">${durTxt(s)}</b><small>${LX("solo ida, a la velocidad de la luz","one way, at the speed of light","só ida, na velocidade da luz")}</small></div>
-      <ul class="lab-steps"><li>${LX("Distancia","Distance","Distância")}: <b>${labN(d.km,0)} km</b></li><li>${LX("Tiempo","Time","Tempo")} = ${labN(d.km,0)} km ÷ 299.792 km/s = <b>${durTxt(s)}</b></li>
-      <li>${LX("Pregunta y respuesta (ida y vuelta)","Question and answer (round trip)","Pergunta e resposta (ida e volta)")}: <b>${durTxt(2*s)}</b></li></ul>
-      ${s>60?`<p class="small muted">${LX("Por eso los rovers de Marte manejan solos: nadie puede usar un joystick con tanta demora.","That's why Mars rovers drive themselves: nobody can use a joystick with that much delay.","Por isso os rovers de Marte dirigem sozinhos: ninguém consegue usar um joystick com tanto atraso.")}</p>`:""}`;
-  },
-  battery(){
-    const cell=CELLS.find(c=>c.k===labSel("lbCell","nimh"))||CELLS[1], n=Math.max(1,Math.min(8,Math.round(labVal("lbN",4)))), mode=labSel("lbMode","serie"), mah=labVal("lbMah",2000), ma=labVal("lbUse",250);
-    const V = mode==="serie" ? cell.v*n : cell.v, C = mode==="serie" ? mah : mah*n, h=C/ma;
-    return `<div class="lab-big two"><div><b class="num">${labN(V,1)} V</b><small>${LX("tensión total","total voltage","tensão total")}</small></div><div><b class="num">${labN(h,1)} h</b><small>${LX("duración aproximada","approximate runtime","duração aproximada")}</small></div></div>
-      <ul class="lab-steps"><li>${mode==="serie"?LX(`En serie las tensiones se suman: ${n} × ${labN(cell.v)} V = ${labN(V,1)} V. La capacidad sigue siendo ${labN(mah,0)} mAh.`,`In series the voltages add up: ${n} × ${labN(cell.v)} V = ${labN(V,1)} V. Capacity stays ${labN(mah,0)} mAh.`,`Em série as tensões se somam: ${n} × ${labN(cell.v)} V = ${labN(V,1)} V. A capacidade continua ${labN(mah,0)} mAh.`):LX(`En paralelo las capacidades se suman: ${n} × ${labN(mah,0)} = ${labN(C,0)} mAh. La tensión sigue siendo ${labN(cell.v)} V.`,`In parallel the capacities add up: ${n} × ${labN(mah,0)} = ${labN(C,0)} mAh. Voltage stays ${labN(cell.v)} V.`,`Em paralelo as capacidades se somam: ${n} × ${labN(mah,0)} = ${labN(C,0)} mAh. A tensão continua ${labN(cell.v)} V.`)}</li>
-      <li>${LX("Duración","Runtime","Duração")} ≈ ${labN(C,0)} mAh ÷ ${labN(ma,0)} mA = <b>${labN(h,1)} h</b> (${LX("en la práctica, un poco menos","in practice, a bit less","na prática, um pouco menos")})</li></ul>
-      ${mode==="paralelo"?`<p class="lab-warn">⚠️ ${LX("En paralelo solo se conectan celdas iguales y con la misma carga.","Only connect identical cells with the same charge in parallel.","Em paralelo só se ligam células iguais e com a mesma carga.")}</p>`:""}`;
-  },
-  bin(){
-    const b=LAB.bits, dec=b.reduce((a,x,i)=>a+x*(1<<(7-i)),0), hex=dec.toString(16).toUpperCase().padStart(2,"0");
-    return `<div class="lab-bits">${b.map((x,i)=>`<button class="lab-bit ${x?"on":""}" data-act="labBit" data-v="${i}" aria-pressed="${!!x}"><b>${x}</b><small>${1<<(7-i)}</small></button>`).join("")}</div>
-      <div class="lab-big two"><div><b class="num">${dec}</b><small>${LX("en decimal","in decimal","em decimal")}</small></div><div><b class="num">${hex}</b><small>${LX("en hexadecimal","in hexadecimal","em hexadecimal")}</small></div></div>
-      <p class="small muted">${dec>=32&&dec<127?LX(`En ASCII, ${dec} es la letra o signo “${String.fromCharCode(dec)}”.`,`In ASCII, ${dec} is the character “${String.fromCharCode(dec)}”.`,`Em ASCII, ${dec} é o caractere “${String.fromCharCode(dec)}”.`):LX("Con 8 bits (1 byte) se forman los números del 0 al 255.","8 bits (1 byte) make the numbers 0 to 255.","Com 8 bits (1 byte) se formam os números de 0 a 255.")}</p>`;
-  }
-};
-function labCard(k, ic, t, sub, inputs, src){
-  return `<section class="card lab-card" id="lab_${k}"><div class="lab-h"><span class="lab-ic">${ic}</span><div><h3>${t}</h3><span class="small muted">${sub}</span></div></div>
-    ${inputs?`<div class="lab-in" data-lab="${k}">${inputs}</div>`:""}<div class="lab-out" id="labOut_${k}">${LAB_CALC[k]()}</div>${src?`<p class="lab-src">📚 ${src}</p>`:""}</section>`;
-}
-const lbNum = (id, label, val, min, max, step, unit) => `<label class="lab-f"><span>${label}</span><div class="lab-num"><input class="input" id="${id}" type="number" inputmode="decimal" value="${val}" min="${min}" max="${max}" step="${step}">${unit?`<em>${unit}</em>`:""}</div></label>`;
-const lbRange = (id, label, val, min, max, step, unit) => `<label class="lab-f"><span>${label} <b id="${id}V">${val}</b> ${unit}</span><input id="${id}" type="range" value="${val}" min="${min}" max="${max}" step="${step}"></label>`;
-const lbSelect = (id, label, opts, val) => `<label class="lab-f"><span>${label}</span><select class="input" id="${id}">${opts.map(([v,t])=>`<option value="${v}" ${v===val?"selected":""}>${t}</option>`).join("")}</select></label>`;
-function viewLab(){
-  return topbar() + `<div class="wrap wide lab" data-noi18n>
-   <div class="pagehead"><div><span class="eyebrow">${LX("Herramientas","Tools","Ferramentas")}</span><h1>${LX("Laboratorio","Lab","Laboratório")}</h1>
-     <p>${LX("Calculadoras para tus proyectos y para entender las lecciones. Cambia los valores y mira el cálculo paso a paso, con datos reales.","Calculators for your projects and to understand the lessons. Change the values and see the math step by step, with real data.","Calculadoras para seus projetos e para entender as lições. Mude os valores e veja a conta passo a passo, com dados reais.")}</p></div></div>
-   <div class="lab-grid">
-    ${labCard("led","💡",LX("Resistencia para un LED","Resistor for an LED","Resistor para um LED"),LX("Ley de Ohm: R = V ÷ I","Ohm's law: R = V ÷ I","Lei de Ohm: R = V ÷ I"),
-      lbSelect("lbVs",LX("Fuente","Supply","Fonte"),[["3.3","3,3 V"],["5","5 V (Arduino)"],["9","9 V"],["12","12 V"]],"5")+lbSelect("lbCol",LX("Color del LED","LED color","Cor do LED"),LED_COLORS.map(c=>[c.k,`${LX(...c.n)} · ${labN(c.v)} V`]),"rojo")+lbRange("lbMa",LX("Corriente","Current","Corrente"),15,5,20,1,"mA"),
-      LX("Tensiones típicas de LED a 20 mA según hojas de datos de Kingbright.","Typical LED voltages at 20 mA from Kingbright datasheets.","Tensões típicas de LED a 20 mA segundo folhas de dados da Kingbright."))}
-    ${labCard("sonar","🦇",LX("Distancia con ultrasonido","Distance with ultrasound","Distância com ultrassom"),"HC-SR04",
-      lbNum("lbUs",LX("Tiempo del eco","Echo time","Tempo do eco"),1000,0,30000,10,"µs")+lbRange("lbT",LX("Temperatura","Temperature","Temperatura"),20,0,40,1,"°C"),
-      LX("Hoja de datos del HC-SR04: 2–400 cm, 15°, disparo de 10 µs.","HC-SR04 datasheet: 2–400 cm, 15°, 10 µs trigger.","Folha de dados do HC-SR04: 2–400 cm, 15°, disparo de 10 µs."))}
-    ${labCard("weight","⚖️",LX("Tu peso en otros mundos","Your weight on other worlds","Seu peso em outros mundos"),LX("Peso = masa × gravedad","Weight = mass × gravity","Peso = massa × gravidade"),
-      lbNum("lbKg",LX("Tu masa","Your mass","Sua massa"),50,1,300,1,"kg"),
-      LX("Gravedad de superficie: NASA (Tierra 9,81 · Luna 1,62 · Marte 3,71 · Júpiter 24,79 m/s²).","Surface gravity: NASA (Earth 9.81 · Moon 1.62 · Mars 3.71 · Jupiter 24.79 m/s²).","Gravidade na superfície: NASA (Terra 9,81 · Lua 1,62 · Marte 3,71 · Júpiter 24,79 m/s²)."))}
-    ${labCard("signal","📡",LX("Demora de la señal","Signal delay","Atraso do sinal"),LX("Tiempo = distancia ÷ velocidad de la luz","Time = distance ÷ speed of light","Tempo = distância ÷ velocidade da luz"),
-      lbSelect("lbDest",LX("Destino","Destination","Destino"),DESTS.map(d=>[d.k,LX(...d.n)]),"marteCerca"),
-      LX("Distancias medias y extremas de la NASA; Voyager 1 llega a un día-luz en noviembre de 2026.","Average and extreme distances from NASA; Voyager 1 reaches one light-day in November 2026.","Distâncias médias e extremas da NASA; a Voyager 1 chega a um dia-luz em novembro de 2026."))}
-    ${labCard("battery","🔋",LX("Pilas y baterías","Batteries","Pilhas e baterias"),LX("Serie, paralelo y duración","Series, parallel and runtime","Série, paralelo e duração"),
-      lbSelect("lbCell",LX("Tipo","Type","Tipo"),CELLS.map(c=>[c.k,LX(...c.n)]),"nimh")+lbRange("lbN",LX("Cantidad","How many","Quantidade"),4,1,8,1,"")+lbSelect("lbMode",LX("Conexión","Connection","Ligação"),[["serie",LX("En serie","In series","Em série")],["paralelo",LX("En paralelo","In parallel","Em paralelo")]],"serie")+lbNum("lbMah",LX("Capacidad de cada una","Capacity of each","Capacidade de cada uma"),2000,100,10000,50,"mAh")+lbNum("lbUse",LX("Consumo del robot","Robot's current draw","Consumo do robô"),250,1,5000,10,"mA"),
-      LX("Valores nominales: alcalina 1,5 V · NiMH 1,2 V · Li-ion 3,7 V (4,2 V cargada).","Nominal values: alkaline 1.5 V · NiMH 1.2 V · Li-ion 3.7 V (4.2 V full).","Valores nominais: alcalina 1,5 V · NiMH 1,2 V · Li-ion 3,7 V (4,2 V carregada)."))}
-    ${labCard("bin","🔢",LX("Traductor binario","Binary translator","Tradutor binário"),LX("Toca los bits para prenderlos o apagarlos","Tap the bits to turn them on or off","Toque nos bits para ligar ou desligar"),"","")}
-   </div></div>`;
-}
-function labUpdate(k){ const o=document.getElementById("labOut_"+k); if(o && LAB_CALC[k]) o.innerHTML=LAB_CALC[k](); }
-document.addEventListener("input", e=>{
-  const box=e.target.closest("[data-lab]"); if(!box) return;
-  if(e.target.type==="range"){ const v=document.getElementById(e.target.id+"V"); if(v) v.textContent=e.target.value; }
-  labUpdate(box.dataset.lab);
-});
-document.addEventListener("change", e=>{ const box=e.target.closest("[data-lab]"); if(box) labUpdate(box.dataset.lab); });
-document.addEventListener("click", e=>{
-  const a=e.target.closest('[data-act="labBit"]'); if(!a) return;
-  const i=+a.dataset.v; LAB.bits[i]=LAB.bits[i]?0:1; SFX.tap(); labUpdate("bin");
-});
-{ const i = NAV.findIndex(n=>n.v==="aprende-mas"); NAV.splice(i+1, 0, {v:"lab", label:"Laboratorio", icon:"flask"}); }
 
 /* ---------- 2) ¿Mito o realidad? ---------- */
 const MYTHS = [
@@ -12526,9 +12397,6 @@ document.addEventListener("keydown", e=>{
 { const _tb = topbar; topbar = function(){ return _tb().replace('<button class="tb-a11y"', `<button class="tb-search" data-act="srOpen" aria-label="${LX("Buscar","Search","Buscar")}" title="${LX("Buscar (/)","Search (/)","Buscar (/)")}">${I.search}</button><button class="tb-a11y"`); }; }
 { const _ald = applyLangData; applyLangData = function(){ _ald.apply(this, arguments); SR_IDX=null; }; }
 
-/* Inicio: acceso al Laboratorio */
-{ const _vhL = viewHome; viewHome = function(){
-    return _vhL().replace(/(<section class="hub"[^>]*>)/, `$1<button class="hub-c lab" data-act="nav" data-view="lab"><span class="hub-ic">🧪</span><div><b>${LX("Laboratorio","Lab","Laboratório")}</b><span>${LX("Calcula la resistencia de un LED, tu peso en Marte o cuánto tarda una señal a la Luna, paso a paso.","Work out an LED resistor, your weight on Mars or how long a signal takes to the Moon, step by step.","Calcule o resistor de um LED, seu peso em Marte ou quanto um sinal leva até a Lua, passo a passo.")}</span></div></button>`); }; }
 /* Botón de búsqueda arriba del menú lateral (computadora) */
 { const _rn = renderNav; renderNav = function(){ _rn.apply(this, arguments); const s=$("#sideNav"); if(s && !s.querySelector(".side-search")) s.insertAdjacentHTML("afterbegin", `<button class="side-search" data-act="srOpen" data-noi18n>${I.search}<span>${LX("Buscar…","Search…","Buscar…")}</span><kbd>/</kbd></button>`); }; }
 
@@ -12539,7 +12407,7 @@ document.addEventListener("keydown", e=>{
    - Botón "atrás" de Android y barra de estado en la APK.
    ========================================================= */
 I.grid = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>`;
-const MORE_VIEWS = ["proyectos","proyecto","publicar","nueva-idea","lab","aprende-mas","tema","glosario","clase","tienda","acerca","capitulo"];
+const MORE_VIEWS = ["proyectos","proyecto","publicar","nueva-idea","aprende-mas","tema","glosario","clase","tienda","acerca","capitulo"];
 const IS_APP = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 if(IS_APP) document.documentElement.classList.add("is-app");
 
@@ -12563,7 +12431,6 @@ function moreSheet(){
     <button class="mo-search" data-act="moreSearch">${I.search}<span>${LX("Buscar lecciones, temas y palabras…","Search lessons, topics and words…","Buscar lições, temas e palavras…")}</span></button>
     <div class="mo-grid">
       ${it("proyectos","🛠️",LX("Proyectos","Projects","Projetos"),LX("De la comunidad","From the community","Da comunidade"))}
-      ${it("lab","🧪",LX("Laboratorio","Lab","Laboratório"),LX("Calculadoras","Calculators","Calculadoras"))}
       ${it("aprende-mas","💡",LX("Aprende más","Learn more","Aprenda mais"),LX("Temas semanales","Weekly topics","Temas semanais"))}
       ${it("glosario","🔤",LX("Glosario","Glossary","Glossário"),LX("Palabras clave","Key words","Palavras-chave"))}
       ${it("clase","📽️",LX("Modo proyector","Projector mode","Modo projetor"),LX("Jugar en clase","Play in class","Jogar em aula"))}
@@ -12781,7 +12648,7 @@ applyLangData();
 function render(){
   if(!P || !DB) return;
   regen();
-  const views = {inicio:viewHome, capitulo:viewChapter, jugar:viewPlay, aprender:viewLearn, proyectos:viewProjects, proyecto:viewProject, publicar:viewSubmit, "nueva-idea":viewNewIdea, ligas:viewLeagues, juegos:viewGames, tienda:viewShop, glosario:viewGlossary, "aprende-mas":(typeof viewWeekly==="function"?viewWeekly:viewHome), tema:(typeof viewTopic==="function"?viewTopic:viewHome), nasa:(typeof viewNasa==="function"?viewNasa:viewHome), clase:(typeof viewClase==="function"?viewClase:viewHome), lab:(typeof viewLab==="function"?viewLab:viewHome), perfil:viewProfile, cuenta:viewAccount, acerca:viewAbout, admin:viewAdmin};
+  const views = {inicio:viewHome, capitulo:viewChapter, jugar:viewPlay, aprender:viewLearn, proyectos:viewProjects, proyecto:viewProject, publicar:viewSubmit, "nueva-idea":viewNewIdea, ligas:viewLeagues, juegos:viewGames, tienda:viewShop, glosario:viewGlossary, "aprende-mas":(typeof viewWeekly==="function"?viewWeekly:viewHome), tema:(typeof viewTopic==="function"?viewTopic:viewHome), nasa:(typeof viewNasa==="function"?viewNasa:viewHome), clase:(typeof viewClase==="function"?viewClase:viewHome), perfil:viewProfile, cuenta:viewAccount, acerca:viewAbout, admin:viewAdmin};
   const ae = document.activeElement, keep = ae && ae.id && ae.tagName==="INPUT" ? {id:ae.id, s:ae.selectionStart} : null;
   $("#main").innerHTML = (views[view]||viewHome)();
   renderNav(); renderRail();
